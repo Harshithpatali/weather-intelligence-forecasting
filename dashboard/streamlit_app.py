@@ -2,46 +2,42 @@ import os,requests,pandas as pd,plotly.express as px,streamlit as st
 st.set_page_config(page_title="Weather Intelligence",page_icon="🌦️",layout="wide")
 API=os.getenv("API_BASE_URL","http://localhost:8000").rstrip("/")
 st.title("🌦️ Weather Intelligence & Forecasting")
-st.caption("Location-aware historical analysis and three-day machine-learning predictions")
+st.caption("A globally pretrained model · location-aware three-day inference")
 with st.sidebar:
-    place=st.text_input("Location","Mysuru, Karnataka, India")
-    days=st.select_slider("Historical lookback",options=[5,10,15],value=10)
+    place=st.text_input("Enter a city or location","Mysuru, Karnataka, India")
     run=st.button("Analyse location",type="primary",use_container_width=True)
-if run: st.session_state["selection"]=(place,days)
-if "selection" not in st.session_state:
-    st.info("Enter a location, choose 5, 10 or 15 historical days, then analyse.")
+if run:st.session_state["place"]=place
+if "place" not in st.session_state:
+    st.info("Enter a location to retrieve current weather and run the saved global model.")
     st.stop()
-place,days=st.session_state["selection"]
+place=st.session_state["place"]
 try:
-    with st.spinner("Resolving location and retrieving current and historical weather..."):
-        r=requests.get(f"{API}/api/weather/location",params={"place":place,"history_days":days},timeout=180)
-        r.raise_for_status(); payload=r.json()
-    loc,cur=payload["location"],payload["current"]
-    st.subheader(f"{loc['name']}, {loc.get('state') or ''} {loc['country']}")
+    with st.spinner("Loading current and recent weather, then applying the saved global model..."):
+        current=requests.get(f"{API}/api/weather/location",params={"place":place,"history_days":7},timeout=60)
+        current.raise_for_status();weather=current.json()
+        response=requests.get(f"{API}/api/predictions/three-day",params={"place":place},timeout=60)
+        response.raise_for_status();result=response.json()
+    loc=weather["location"];cur=weather["current"]
+    st.subheader(f"{loc['name']}, {loc.get('state') or ''} · {loc['country']}")
     a,b,c,d=st.columns(4)
-    a.metric("Temperature",f"{cur['temperature_c']:.1f} °C")
+    a.metric("Current temperature",f"{cur['temperature_c']:.1f} °C")
     b.metric("Humidity",f"{cur['humidity_pct']}%")
-    c.metric("Wind",f"{cur['wind_speed_ms']} m/s")
+    c.metric("Wind",f"{cur['wind_speed_ms']:.1f} m/s")
     d.metric("Pressure",f"{cur['pressure_hpa']} hPa")
-    st.caption(f"Historical data status: {payload['history_status']}")
-    hist=pd.DataFrame(payload["history"])
+    hist=pd.DataFrame(weather["history"])
     if not hist.empty:
-        hist["date"]=pd.to_datetime(hist["observed_at"],unit="s",utc=True)
-        st.subheader(f"Historical weather · {days} days")
-        st.plotly_chart(px.line(hist,x="date",y="temperature_c",markers=True),use_container_width=True)
+        st.subheader("Recent weather context")
+        st.plotly_chart(px.line(hist,x="date",y="temperature_c",markers=True,title="Recent daily temperature"),use_container_width=True)
         st.dataframe(hist,use_container_width=True)
-    else: st.warning("No historical records returned. Check your One Call historical API subscription.")
-    st.divider();st.header("Three-day ML prediction")
-    pr=requests.get(f"{API}/api/predictions/three-day",params={"place":loc["name"],"history_days":days},timeout=30)
-    if pr.ok:
-        result=pr.json();fc=pd.DataFrame(result["forecast"])
-        st.caption(f"{result['model']} · stored records used: {result['history_records_used']}")
-        st.dataframe(fc,use_container_width=True)
-        for col,label in [("temperature_c","Temperature (°C)"),("humidity_pct","Humidity (%)"),
-          ("wind_speed_ms","Wind speed (m/s)"),("rainfall_estimate_mm","Rainfall amount (mm)"),("rainfall_probability","Rainfall probability")]:
-            st.plotly_chart(px.line(fc,x="date",y=col,markers=True,title=label),use_container_width=True)
-        st.info("Rainfall amount is estimated; rainfall probability is not yet modelled.")
-    else: st.warning("The three-day model is not trained or there is insufficient stored history. Train using a diverse multi-city historical dataset.")
+    st.divider();st.header("Global ML forecast · Next 3 days")
+    st.caption(f"Model: {result['model_version']} · {result['model_mode']}")
+    forecast=pd.DataFrame(result["predictions"])
+    st.dataframe(forecast,use_container_width=True)
+    for col,label in [("temperature_c","Temperature (°C)"),("rainfall_probability","Rainfall probability"),
+      ("rainfall_mm","Rainfall amount (mm)"),("humidity_pct","Humidity (%)"),("wind_speed_ms","Wind speed (m/s)")]:
+        st.plotly_chart(px.line(forecast,x="date",y=col,markers=True,title=label),use_container_width=True)
+    with st.expander("Global model validation metrics"):
+        st.json(requests.get(f"{API}/api/models/metrics",timeout=20).json())
 except requests.RequestException as e:
-    st.error(f"Weather request failed: {e}")
+    st.error(f"Could not complete weather inference: {e}")
     if getattr(e,"response",None) is not None:st.code(e.response.text)
