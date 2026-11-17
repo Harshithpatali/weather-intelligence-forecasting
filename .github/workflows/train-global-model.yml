@@ -1,0 +1,47 @@
+name: Train global weather model
+
+on:
+  workflow_dispatch:
+    inputs:
+      days:
+        description: Historical training window in days
+        required: true
+        default: "365"
+      end_date:
+        description: Archive end date (YYYY-MM-DD); leave blank for latest complete archive day
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-train:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install training dependencies
+        run: pip install -r requirements.txt
+      - name: Download one year of global historical weather
+        run: |
+          if [ -n "${{ inputs.end_date }}" ]; then
+            python -m scripts.build_global_dataset --days "${{ inputs.days }}" --end-date "${{ inputs.end_date }}"
+          else
+            python -m scripts.build_global_dataset --days "${{ inputs.days }}"
+          fi
+      - name: Train and evaluate global model
+        run: python -m scripts.train_global_model
+      - name: Upload versioned model and metrics
+        uses: actions/upload-artifact@v4
+        with:
+          name: global-weather-model-${{ github.run_number }}
+          path: |
+            artifacts/global_weather_model.joblib
+            artifacts/metrics.json
+            data/global_weather_1y.csv
+          retention-days: 90
