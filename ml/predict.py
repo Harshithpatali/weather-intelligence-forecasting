@@ -36,8 +36,10 @@ def predict_three_days(place,history_days=10):
         row["humidity_pct"]=min(100,max(0,row["humidity_pct"]))
         row["wind_speed_ms"]=max(0,row["wind_speed_ms"])
         row["rainfall_estimate_mm"]=max(0,row.pop("rain_1h_mm"))
+        clf=b["models"][str(h)]["rain_probability"]
+        row["rainfall_probability"]=float(clf.predict_proba(x)[0][list(clf.classes_).index(1)]) if 1 in clf.classes_ else 0.0
         row["date"]=(now+pd.Timedelta(days=h)).date().isoformat()
         out.append(row)
     return {"location":place,"history_records_used":len(latest),"horizon_days":3,"forecast":out,
       "model":"Random Forest multi-horizon regression","metrics":load_metrics(),
-      "rainfall_probability":"Not estimated; rainfall amount is a different target."}
+      "rainfall_probability_source":"Separate Random Forest occurrence classifier"}
