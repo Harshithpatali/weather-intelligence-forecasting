@@ -7,14 +7,14 @@ from pathlib import Path
 import httpx,pandas as pd
 
 COUNTRIES=["US","CA","MX","BR","AR","CL","GB","IE","FR","DE","ES","IT","NL","BE","CH","AT","SE","NO","FI","PL","CZ","PT","GR","TR","RU","IN","PK","BD","LK","NP","CN","JP","KR","TH","VN","ID","MY","SG","AU","NZ"]
-GEONAMES="https://download.geonames.org/export/dump/cities15000.zip"
+GEONAMES="https://download.geonames.org/export/dump/cities500.zip"
 ARCHIVE="https://archive-api.open-meteo.com/v1/archive"
 
 def load_locations(path):
     p=Path(path)
     if p.exists(): cities=pd.read_csv(p)
     else:
-        print("Downloading GeoNames cities15000 catalogue...")
+        print("Downloading GeoNames cities500 catalogue...")
         with httpx.Client(timeout=120,follow_redirects=True) as client:
             response=client.get(GEONAMES);response.raise_for_status()
         z=zipfile.ZipFile(io.BytesIO(response.content));name=next(n for n in z.namelist() if n.endswith(".txt"))
