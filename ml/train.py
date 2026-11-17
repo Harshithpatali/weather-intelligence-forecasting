@@ -2,6 +2,7 @@ import argparse,json
 from pathlib import Path
 import joblib,pandas as pd
 from sklearn.ensemble import HistGradientBoostingRegressor,HistGradientBoostingClassifier
+from sklearn.dummy import DummyClassifier
 from sklearn.metrics import mean_absolute_error,mean_squared_error,r2_score,precision_score,recall_score,f1_score,roc_auc_score,brier_score_loss
 from ml.features import prepare_daily_weather,WEATHER
 
@@ -31,7 +32,7 @@ def train(data_path,output_dir="artifacts"):
               "rmse":float(mean_squared_error(test_df[y],pred)**.5),"r2":float(r2_score(test_df[y],pred))}
         ytr=(train_df[f"target_rainfall_mm_d{h}"]>0.1).astype(int)
         yte=(test_df[f"target_rainfall_mm_d{h}"]>0.1).astype(int)
-        clf=HistGradientBoostingClassifier(max_iter=200,learning_rate=.07,max_leaf_nodes=31,l2_regularization=1.0,random_state=42)
+        clf=(HistGradientBoostingClassifier(max_iter=200,learning_rate=.07,max_leaf_nodes=31,l2_regularization=1.0,random_state=42) if ytr.nunique()>1 else DummyClassifier(strategy="constant",constant=int(ytr.iloc[0])))
         clf.fit(train_df[features],ytr);prob=clf.predict_proba(test_df[features])[:,list(clf.classes_).index(1)] if 1 in clf.classes_ else [0.0]*len(test_df)
         pred=(prob>=.5).astype(int);models[str(h)]["rain_probability"]=clf
         metrics["horizons"][str(h)]["rain_probability"]={"precision":float(precision_score(yte,pred,zero_division=0)),
