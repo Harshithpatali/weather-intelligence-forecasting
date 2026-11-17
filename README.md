@@ -4,7 +4,7 @@ Global pretrained ML weather forecasting. Train offline once using one year of r
 
 ## Global training data
 - Source: Open-Meteo Historical Weather API, ERA5 reanalysis.
-- Location catalogue: GeoNames populated places (cities15000); top 30 population-ranked cities in each of 40 configured countries.
+- Location catalogue: GeoNames populated places (cities500); top 30 population-ranked cities in each of 40 configured countries.
 - Variables: daily mean temperature, daily precipitation sum, daily maximum wind speed, and daily mean relative humidity derived from hourly values.
 - One year of daily data, with a 6-day publication buffer to avoid incomplete recent archive days.
 - The source is reanalysis (model-assimilated historical estimate), not direct station observations. See https://open-meteo.com/en/docs/historical-weather-api and GeoNames attribution.
