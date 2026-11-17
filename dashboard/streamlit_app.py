@@ -38,7 +38,7 @@ try:
         st.caption(f"{result['model']} · stored records used: {result['history_records_used']}")
         st.dataframe(fc,use_container_width=True)
         for col,label in [("temperature_c","Temperature (°C)"),("humidity_pct","Humidity (%)"),
-          ("wind_speed_ms","Wind speed (m/s)"),("rainfall_estimate_mm","Rainfall amount (mm)")]:
+          ("wind_speed_ms","Wind speed (m/s)"),("rainfall_estimate_mm","Rainfall amount (mm)"),("rainfall_probability","Rainfall probability")]:
             st.plotly_chart(px.line(fc,x="date",y=col,markers=True,title=label),use_container_width=True)
         st.info("Rainfall amount is estimated; rainfall probability is not yet modelled.")
     else: st.warning("The three-day model is not trained or there is insufficient stored history. Train using a diverse multi-city historical dataset.")
