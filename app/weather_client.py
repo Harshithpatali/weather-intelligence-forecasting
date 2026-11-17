@@ -2,8 +2,8 @@ import httpx
 from app.config import settings
 class WeatherProviderError(RuntimeError): pass
 class OpenWeatherClient:
-    def __init__(self):
-        self.key=settings.openweather_api_key
+    def __init__(self, api_key=None):
+        self.key=settings.openweather_api_key if api_key is None else api_key
         self.base=settings.openweather_base_url.rstrip("/")
         self.timeout=settings.request_timeout_seconds
     async def get(self,url,params):
