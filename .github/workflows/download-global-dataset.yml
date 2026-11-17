@@ -1,0 +1,58 @@
+name: Download and commit global weather dataset
+
+on:
+  workflow_dispatch:
+    inputs:
+      days:
+        description: Historical training window in days
+        required: true
+        default: "365"
+      end_date:
+        description: Archive end date (YYYY-MM-DD); leave blank for latest complete archive day
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+jobs:
+  download-and-save:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install data collection dependencies
+        run: pip install -r requirements.txt
+      - name: Download historical weather data
+        run: |
+          if [ -n "${{ inputs.end_date }}" ]; then
+            python -m scripts.build_global_dataset --days "${{ inputs.days }}" --end-date "${{ inputs.end_date }}"
+          else
+            python -m scripts.build_global_dataset --days "${{ inputs.days }}"
+          fi
+      - name: Compress and validate dataset for GitHub
+        run: |
+          gzip -9 -c data/global_weather_1y.csv > data/global_weather_1y.csv.gz
+          gzip -t data/global_weather_1y.csv.gz
+          SIZE=$(stat -c%s data/global_weather_1y.csv.gz)
+          echo "Compressed dataset size: $SIZE bytes"
+          if [ "$SIZE" -ge 90000000 ]; then
+            echo "Compressed dataset is too large for a normal GitHub repository commit."
+            exit 1
+          fi
+      - name: Commit dataset to main
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/global_weather_1y.csv.gz
+          git commit -m "Add one-year global weather training dataset" || {
+            echo "No dataset changes to commit."
+            exit 0
+          }
+          git push origin HEAD:main
