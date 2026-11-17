@@ -32,8 +32,8 @@ def load_locations(path):
 def params_for(locs,start,end):
     return {"latitude":",".join(str(x) for x in locs.latitude),
       "longitude":",".join(str(x) for x in locs.longitude),"start_date":start,"end_date":end,
-      "daily":"temperature_2m_mean,precipitation_sum,wind_speed_10m_max",
-      "hourly":"relative_humidity_2m","timezone":"UTC","wind_speed_unit":"ms"}
+      "daily":"temperature_2m_mean,relative_humidity_2m_mean,precipitation_sum,wind_speed_10m_max",
+      "timezone":"UTC","wind_speed_unit":"ms"}
 
 async def request_archive(client,locs,start,end):
     params=params_for(locs,start,end)
@@ -75,19 +75,14 @@ async def fetch_resilient(client,batch,start,end):
         return results
 
 def rows_from_payload(loc,item):
-    daily=item.get("daily",{});hourly=item.get("hourly",{})
-    h=pd.DataFrame({"time":hourly.get("time",[]),"humidity":hourly.get("relative_humidity_2m",[])})
-    humidity={}
-    if not h.empty:
-        h["date"]=pd.to_datetime(h.time).dt.date.astype(str)
-        humidity=h.groupby("date").humidity.mean().to_dict()
+    daily=item.get("daily",{})
     rows=[]
     for i,day in enumerate(daily.get("time",[])):
         rows.append({"location_id":str(loc.get("geonameid",loc.get("location_id"))),
           "city":loc["name"],"country_code":loc["country_code"],"latitude":float(loc["latitude"]),
           "longitude":float(loc["longitude"]),"elevation_m":float(loc.get("dem",loc.get("elevation",0)) or 0),
           "date":day,"temperature_c":daily["temperature_2m_mean"][i],
-          "humidity_pct":humidity.get(day),"rainfall_mm":daily["precipitation_sum"][i],
+          "humidity_pct":daily["relative_humidity_2m_mean"][i],"rainfall_mm":daily["precipitation_sum"][i],
           "wind_speed_ms":daily["wind_speed_10m_max"][i]})
     return rows
 
