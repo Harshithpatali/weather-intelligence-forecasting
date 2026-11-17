@@ -12,6 +12,11 @@ def train(data_path,output_dir="artifacts"):
     frame,features=prepare_daily_weather(d)
     if frame["country_code"].nunique()<40: raise ValueError(f"Need at least 40 countries; found {frame['country_code'].nunique()}.")
     if frame["location_id"].nunique()<1200: raise ValueError(f"Need at least 1,200 locations (30 per country x 40); found {frame['location_id'].nunique()}.")
+    per_country=frame.groupby("country_code")["location_id"].nunique()
+    if len(per_country)<40 or (per_country<30).any():
+        raise ValueError("Every one of the 40 countries must contribute at least 30 unique locations.")
+    if (frame["date"].max()-frame["date"].min()).days<330:
+        raise ValueError("Training data must cover approximately one full year (at least 330 days).")
     dates=sorted(frame["date"].unique())
     if len(dates)<250: raise ValueError("Need at least 250 distinct dates after feature engineering.")
     cutoff=dates[int(len(dates)*.8)]
