@@ -18,7 +18,7 @@ def load_locations(path):
             response=client.get(GEONAMES);response.raise_for_status()
         z=zipfile.ZipFile(io.BytesIO(response.content));name=next(n for n in z.namelist() if n.endswith(".txt"))
         cols=["geonameid","name","asciiname","alternatenames","latitude","longitude","feature_class","feature_code","country_code","cc2","admin1","admin2","admin3","admin4","population","elevation","dem","timezone","modification_date"]
-        cities=pd.read_csv(z.open(name),sep="\\t",header=None,names=cols,dtype={"country_code":str},low_memory=False)
+        cities=pd.read_csv(z.open(name),sep="\t",header=None,names=cols,dtype={"country_code":str},low_memory=False)
         cities=cities[(cities.feature_class=="P") & cities.country_code.isin(COUNTRIES)].copy()
         cities["population"]=pd.to_numeric(cities.population,errors="coerce").fillna(0)
         cities=cities.sort_values(["country_code","population"],ascending=[True,False]).groupby("country_code").head(30)
