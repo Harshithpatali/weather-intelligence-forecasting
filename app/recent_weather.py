@@ -1,5 +1,6 @@
 """Recent daily context for inference; separate from the offline training archive."""
 import httpx
+from datetime import datetime, timezone
 from app.config import settings
 
 async def fetch_recent_daily(latitude,longitude,days=7):
@@ -17,7 +18,9 @@ async def fetch_recent_daily(latitude,longitude,days=7):
         humidity=h.groupby("date").humidity.mean().to_dict()
     else: humidity={}
     rows=[]
+    today=datetime.now(timezone.utc).date().isoformat()
     for i,day in enumerate(daily.get("time",[])):
+        if day>today: continue
         rows.append({"date":day,"temperature_c":daily["temperature_2m_mean"][i],
           "humidity_pct":humidity.get(day),"rainfall_mm":daily["precipitation_sum"][i],
           "wind_speed_ms":daily["wind_speed_10m_mean"][i]})
