@@ -18,11 +18,10 @@ def predict_three_days(place,history_days=10):
     if len(rows)<3:return None
     d=pd.DataFrame([{k:getattr(r,k) for k in ["city","observed_at",*FEATURES]} for r in rows])
     d["observed_at"]=pd.to_datetime(d["observed_at"],utc=True)
-    d=d.sort_values("observed_at").groupby("city").tail(history_days)
-    daily=d.groupby("city",as_index=False)[FEATURES].mean()
-    if len(daily)<1:return None
-    # This initial inference uses the latest three observed records as lag inputs.
-    latest=d.sort_values("observed_at").tail(3)
+    d=d.sort_values("observed_at")
+    d["day"]=d["observed_at"].dt.floor("D")
+    daily=d.groupby(["city","day"],as_index=False)[FEATURES].mean().sort_values("day").tail(history_days)
+    latest=daily.tail(3)
     if len(latest)<3:return None
     vals={}
     for lag,(_,row) in zip((3,2,1),latest.iterrows()):
