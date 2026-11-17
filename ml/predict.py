@@ -1,7 +1,9 @@
 import json
 from pathlib import Path
 import joblib,numpy as np,pandas as pd
+from functools import lru_cache
 ART=Path("artifacts")
+@lru_cache(maxsize=1)
 def load_model(path=None):
     p=Path(path) if path else ART/"global_weather_model.joblib"
     return joblib.load(p) if p.exists() else None
