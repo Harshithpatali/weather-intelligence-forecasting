@@ -1,0 +1,28 @@
+name: Validate Open-Meteo forecast data sources
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-sources:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Validate historical forecast, previous runs and observations
+        run: python -m scripts.validate_open_meteo_sources
+      - name: Upload source validation report
+        uses: actions/upload-artifact@v4
+        with:
+          name: open-meteo-source-validation
+          path: artifacts/open_meteo_source_validation.json
+          retention-days: 30
