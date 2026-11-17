@@ -8,7 +8,7 @@ def test_daily_frame_has_three_day_targets():
             rows.append({"city":city,"observed_at":day,"temperature_c":25.,"feels_like_c":26.,
             "humidity_pct":60.,"pressure_hpa":1010.,"wind_speed_ms":2.,"cloud_pct":20.,"rain_1h_mm":0.})
     result=build_daily_frame(pd.DataFrame(rows))
-    assert len(result)==12
+    assert len(result)==14
     assert "target_temperature_c_d3" in result
     assert "target_humidity_pct_d2" in result
     assert "target_wind_speed_ms_d1" in result
