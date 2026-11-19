@@ -25,7 +25,7 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
       - name: Build dataset
-        run: python -m scripts.build_karnataka_dataset --days "\${{ inputs.days }}" --locations "\${{ inputs.locations }}"
+        run: python -m scripts.build_karnataka_dataset --days "${{ inputs.days }}" --locations "${{ inputs.locations }}"
       - name: Validate dataset
         run: |
           python - <<'PY'
@@ -42,7 +42,7 @@ jobs:
       - name: Upload dataset and report
         uses: actions/upload-artifact@v4
         with:
-          name: karnataka-forecast-dataset-\${{ github.run_number }}
+          name: karnataka-forecast-dataset-${{ github.run_number }}
           path: |
             data/karnataka_forecast_training.parquet
             artifacts/karnataka_dataset_report.json
