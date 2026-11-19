@@ -1,0 +1,50 @@
+name: Build India forecast dataset
+on:
+  workflow_dispatch:
+    inputs:
+      days:
+        description: Historical window in days
+        required: true
+        default: "30"
+      locations:
+        description: Number of Indian populated locations
+        required: true
+        default: "30"
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Compile dataset builder
+        run: python -m py_compile scripts/build_india_dataset.py
+      - name: Build dataset
+        run: python -m scripts.build_india_dataset --days "${{ inputs.days }}" --locations "${{ inputs.locations }}"
+      - name: Validate dataset
+        run: |
+          python - <<'PY'
+          import pandas as pd
+          df = pd.read_parquet("data/india_forecast_training.parquet")
+          assert df["country_code"].eq("IN").all()
+          assert df["location_id"].nunique() >= 30
+          for lead in (1, 2, 3):
+              for variable in ("temperature_2m", "relative_humidity_2m", "precipitation", "wind_speed_10m"):
+                  assert f"previous_run_{variable}_previous_day{lead}" in df.columns
+          print(f"Validated {len(df):,} rows across {df.location_id.nunique()} Indian locations.")
+          PY
+      - name: Upload dataset and report
+        uses: actions/upload-artifact@v4
+        with:
+          name: india-forecast-dataset-${{ github.run_number }}
+          path: |
+            data/india_forecast_training.parquet
+            artifacts/india_dataset_report.json
+          retention-days: 90
