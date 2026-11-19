@@ -1,6 +1,6 @@
-# Weather Intelligence & Forecasting — Karnataka Pilot
+# Weather Intelligence & Forecasting — India Pilot
 
-A Karnataka-only weather forecasting and model-evaluation pilot. The first data build covers 30 populated locations across Karnataka, India. Global expansion is out of scope until this pipeline is validated.
+An India-wide weather forecasting and model-evaluation pilot. The initial dataset uses 30 populated locations selected from GeoNames across India. The scope is national rather than state-specific so the pipeline does not depend on resolving a single state's administrative catalogue.
 
 ## Data design
 
@@ -8,7 +8,7 @@ A Karnataka-only weather forecasting and model-evaluation pilot. The first data 
 - **Historical Forecast API:** archived continuous forecast context, including precipitation probability.
 - **Historical Weather API:** hourly reanalysis observations used as verification targets, not as forecast inputs.
 
-Each record is keyed by location and valid UTC hour. Forecast lead-time columns and verifying observations remain separate. Reanalysis is a model-based estimate, not a direct station measurement.
+Each record is keyed by location and valid UTC hour. Forecast lead-time columns and verifying observations remain separate. Reanalysis is a model-based estimate, not a direct station measurement. GeoNames supplies the Indian populated-place catalogue and location metadata.
 
 Documentation: https://open-meteo.com/en/docs/previous-runs-api, https://open-meteo.com/en/docs/historical-forecast-api, https://open-meteo.com/en/docs/historical-weather-api
 
@@ -16,10 +16,10 @@ Documentation: https://open-meteo.com/en/docs/previous-runs-api, https://open-me
 
 ```bash
 pip install -r requirements.txt
-python -m scripts.build_karnataka_dataset --days 365 --locations 30
+python -m scripts.build_india_dataset --days 30 --locations 30
 ```
 
-Outputs: `data/karnataka_forecast_training.parquet` and `artifacts/karnataka_dataset_report.json`. Run **Actions → Build Karnataka forecast dataset** to upload them as a 90-day artifact. Generated data is not committed into Git history. The default end date leaves a six-day archive-completeness buffer; use `days=30` for a pilot before the full year.
+Outputs: `data/india_forecast_training.parquet` and `artifacts/india_dataset_report.json`. Run **Actions → Build India forecast dataset** to upload them as a 90-day artifact. Generated data is not committed into Git history. Validate the 30-day pilot before requesting the full 365-day history.
 
 ## Model plan
 
@@ -27,4 +27,4 @@ The data build is not a trained model. Next, create a leakage-safe training/eval
 
 ## Runtime target
 
-The intended runtime accepts a Karnataka location, fetches current conditions and recent forecast context, loads a saved offline-trained model, and returns a three-day forecast for temperature, rainfall probability/amount, humidity and wind. Runtime requests will not retrain the model.
+The intended runtime accepts an Indian location, fetches current conditions and recent forecast context, loads a saved offline-trained model, and returns a three-day forecast for temperature, rainfall probability/amount, humidity and wind. Runtime requests will not retrain the model.
