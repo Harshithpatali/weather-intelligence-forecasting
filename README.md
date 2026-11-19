@@ -1,37 +1,30 @@
-# Weather Intelligence & Forecasting
+# Weather Intelligence & Forecasting — Karnataka Pilot
 
-Global pretrained ML weather forecasting. Train offline once using one year of reanalysis weather for 1,200 populated places across 40 countries (30 per country). Runtime requests never retrain the model.
+A Karnataka-only weather forecasting and model-evaluation pilot. The first data build covers 30 populated locations across Karnataka, India. Global expansion is out of scope until this pipeline is validated.
 
-## Global training data
-- Source: Open-Meteo Historical Weather API, ERA5 reanalysis.
-- Location catalogue: GeoNames populated places (cities500); top 30 population-ranked cities in each of 40 configured countries.
-- Variables: daily mean temperature, daily precipitation sum, daily maximum wind speed, and daily mean relative humidity derived from hourly values.
-- One year of daily data, with a 6-day publication buffer to avoid incomplete recent archive days.
-- The source is reanalysis (model-assimilated historical estimate), not direct station observations. See https://open-meteo.com/en/docs/historical-weather-api and GeoNames attribution.
+## Data design
 
-## Build and train once
+- **Previous Runs API:** hourly forecasts at fixed 1-, 2- and 3-day lead times; primary inputs for lead-time-specific evaluation.
+- **Historical Forecast API:** archived continuous forecast context, including precipitation probability.
+- **Historical Weather API:** hourly reanalysis observations used as verification targets, not as forecast inputs.
+
+Each record is keyed by location and valid UTC hour. Forecast lead-time columns and verifying observations remain separate. Reanalysis is a model-based estimate, not a direct station measurement.
+
+Documentation: https://open-meteo.com/en/docs/previous-runs-api, https://open-meteo.com/en/docs/historical-forecast-api, https://open-meteo.com/en/docs/historical-weather-api
+
+## Build
+
 ```bash
 pip install -r requirements.txt
-python -m scripts.build_global_dataset --days 365
-python -m scripts.train_global_model
+python -m scripts.build_karnataka_dataset --days 365 --locations 30
 ```
-The dataset builder makes batched multi-coordinate archive requests and writes `data/global_weather_1y.csv`. It validates 30 places for each of 40 configured countries. If the GeoNames top-populated-places catalogue does not provide 30 for a country, supply a complete `data/locations.csv` containing at least 30 records for each configured country with columns: geonameid, name, latitude, longitude, country_code, population, dem.
-Training writes `artifacts/global_weather_model.joblib` and `artifacts/metrics.json`. Model artifact is not committed by default; persist it in durable object storage or attach it to a release/deployment image. Training requires 1,200 locations, 40 countries and sufficient valid daily rows. It evaluates a global chronological 80/20 date holdout without shuffling.
 
-## Runtime inference
-1. Geocode the requested location using the configured OpenWeather API key.
-2. Fetch current weather through OpenWeather.
-3. Fetch the latest seven complete daily context records from Open-Meteo Forecast API.
-4. Load the saved global artifact and run inference only. No runtime training.
-5. Return daily temperature, rainfall amount and probability, humidity and wind for days 1–3.
+Outputs: `data/karnataka_forecast_training.parquet` and `artifacts/karnataka_dataset_report.json`. Run **Actions → Build Karnataka forecast dataset** to upload them as a 90-day artifact. Generated data is not committed into Git history. The default end date leaves a six-day archive-completeness buffer; use `days=30` for a pilot before the full year.
 
-The archive and runtime context are sourced from Open-Meteo reanalysis/forecast products, while current conditions are from OpenWeather. Reanalysis/forecast data are not guaranteed to equal station observations. Rainfall probability is the classifier's estimated probability of a day with measurable precipitation (>0.1 mm), not an official warning.
+## Model plan
 
-## Environment
-Set `OPENWEATHER_API_KEY` for geocoding and current conditions. Set `DATABASE_URL` only if storing live observations. Keep API credentials in host secrets, never in source control.
+The data build is not a trained model. Next, create a leakage-safe training/evaluation pipeline pairing each fixed-lead forecast with the observation at the same valid time. Compare lead-time-specific bias-correction models. Report MAE/RMSE for temperature, humidity and wind, plus rainfall amount and probability metrics. Do not claim a trained or deployed model until evaluation artifacts exist.
 
-## Run
-```bash
-uvicorn app.main:app --host 0.0.0.0 --port 8000
-streamlit run dashboard/streamlit_app.py
-```
+## Runtime target
+
+The intended runtime accepts a Karnataka location, fetches current conditions and recent forecast context, loads a saved offline-trained model, and returns a three-day forecast for temperature, rainfall probability/amount, humidity and wind. Runtime requests will not retrain the model.
