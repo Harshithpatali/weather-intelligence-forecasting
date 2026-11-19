@@ -17,11 +17,11 @@ def load_locations(limit=30):
         ar=c.get(ADMIN1); ar.raise_for_status()
     with zipfile.ZipFile(io.BytesIO(zr.content)) as z:
         member=next(n for n in z.namelist() if n.endswith(".txt"))
-        cities=pd.read_csv(z.open(member),sep="\\t",header=None,names=COLS,dtype={"country_code":str,"admin1_code":str})
-    admin=pd.read_csv(io.BytesIO(ar.content),sep="\\t",header=None,names=["code","name","asciiname"])
-    state=admin[admin.asciiname.str.casefold().eq("karnataka")]
+        cities=pd.read_csv(z.open(member),sep="\t",header=None,names=COLS,dtype={"country_code":str,"admin1_code":str})
+    admin=pd.read_csv(io.BytesIO(ar.content),sep="\t",header=None,names=["code","name","asciiname"],dtype=str)
+    state=admin[admin["asciiname"].fillna("").str.casefold().eq("karnataka")]
     if state.empty: raise RuntimeError("Karnataka not found in GeoNames admin1 catalogue.")
-    code=state.iloc[0].code.split(".",1)[1]
+    code=state.iloc[0]["code"].split(".",1)[1]
     cities=cities[(cities.country_code=="IN")&(cities.admin1_code.astype(str)==code)&(cities.feature_class=="P")].copy()
     cities["population"]=pd.to_numeric(cities.population,errors="coerce").fillna(0)
     cities=cities.sort_values("population",ascending=False).drop_duplicates(["name","latitude","longitude"]).head(limit)
