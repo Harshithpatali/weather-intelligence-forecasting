@@ -1,0 +1,68 @@
+name: Train India weather model
+
+on:
+  workflow_dispatch:
+    inputs:
+      dataset_artifact_name:
+        description: Artifact name from the Build India forecast dataset run
+        required: true
+        type: string
+      dataset_run_id:
+        description: GitHub Actions run ID that created the dataset artifact
+        required: true
+        type: string
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  train:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Download India dataset artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ inputs.dataset_run_id }}
+          ARTIFACT_NAME: ${{ inputs.dataset_artifact_name }}
+        run: |
+          gh run download "$RUN_ID" --repo "$GITHUB_REPOSITORY" --name "$ARTIFACT_NAME" --dir training-input
+          test -s training-input/data/india_forecast_training.parquet
+      - name: Compile training pipeline
+        run: python -m py_compile ml/india_training.py scripts/train_india_model.py
+      - name: Train and evaluate
+        run: |
+          python -m scripts.train_india_model \
+            --data training-input/data/india_forecast_training.parquet \
+            --output-dir artifacts
+      - name: Validate outputs
+        run: |
+          test -s artifacts/india_weather_calibration.joblib
+          test -s artifacts/india_model_metrics.json
+          python - <<'PY'
+          import json
+          with open("artifacts/india_model_metrics.json") as f:
+              report = json.load(f)
+          assert set(report["leads"]) == {"1", "2", "3"}
+          for lead in report["leads"].values():
+              assert lead["rows"]["train"] > 0 and lead["rows"]["test"] > 0
+              assert "raw_forecast" in lead["targets"]["temperature_2m"]
+              assert "bias_corrected" in lead["targets"]["temperature_2m"]
+          print("Validated model and metrics for 1-, 2- and 3-day leads.")
+          PY
+      - name: Upload model and evaluation report
+        uses: actions/upload-artifact@v4
+        with:
+          name: india-weather-model-${{ github.run_number }}
+          path: |
+            artifacts/india_weather_calibration.joblib
+            artifacts/india_model_metrics.json
+          retention-days: 90
