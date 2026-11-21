@@ -1,48 +1,97 @@
-from fastapi import FastAPI,HTTPException,Query
-from app.weather_client import OpenWeatherClient,WeatherProviderError
-from app.database import init_db,save_observation
-from app.recent_weather import fetch_recent_daily
-from ml.predict import predict_from_recent,load_metrics,load_model
+from fastapi import FastAPI, HTTPException, Query
+from app.weather_client import OpenWeatherClient, WeatherProviderError
+from app.database import init_db, save_observation
+from app.recent_weather import fetch_recent_daily, fetch_hourly_forecast
+from ml.india_predict import (
+    load_india_metrics, load_india_model, predict_india_forecasts,
+)
 
-app=FastAPI(title="Weather Intelligence API",version="3.0.0")
+app = FastAPI(title="Weather Intelligence API", version="4.0.0")
+
+
 @app.on_event("startup")
 def startup():
     init_db()
-    load_model()  # load the persisted global model once per API worker
+    load_india_model()  # Load the persisted India model once per API worker.
+
 
 @app.get("/health")
 def health():
-    return {"status":"ok","model_loaded":load_model() is not None,"model_mode":"pretrained global model; no request-time training"}
+    loaded = load_india_model() is not None
+    return {
+        "status": "ok",
+        "model_loaded": loaded,
+        "model_mode": "India fixed-lead calibrated model; inference only" if loaded
+                      else "India model artifact not installed",
+    }
+
 
 @app.get("/api/weather/location")
-async def location_weather(place:str=Query(min_length=2,max_length=120),history_days:int=Query(10,ge=5,le=15)):
-    c=OpenWeatherClient()
+async def location_weather(
+    place: str = Query(min_length=2, max_length=120),
+    history_days: int = Query(10, ge=5, le=15),
+):
+    client = OpenWeatherClient()
     try:
-        loc=await c.geocode(place);current=await c.current(loc["lat"],loc["lon"])
-        current.update({"city":loc["name"],"country":loc["country"]})
+        location = await client.geocode(place)
+        current = await client.current(location["lat"], location["lon"])
+        current.update({"city": location["name"], "country": location["country"]})
         save_observation(current)
-        history=await fetch_recent_daily(loc["lat"],loc["lon"],max(7,history_days))
-        return {"location":loc,"current":current,"history":history,"history_days_requested":history_days,
-          "history_status":"Open-Meteo recent daily context"}
-    except WeatherProviderError as e:raise HTTPException(502,detail=str(e)) from e
-    except Exception as e:raise HTTPException(502,detail=f"Recent weather retrieval failed: {e}") from e
+        history = await fetch_recent_daily(
+            location["lat"], location["lon"], max(7, history_days)
+        )
+        return {
+            "location": location,
+            "current": current,
+            "history": history,
+            "history_days_requested": history_days,
+            "history_status": "Open-Meteo recent daily context",
+        }
+    except WeatherProviderError as exc:
+        raise HTTPException(502, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(502, detail=f"Recent weather retrieval failed: {exc}") from exc
+
 
 @app.get("/api/predictions/three-day")
-async def three_day(place:str=Query(min_length=2,max_length=120)):
-    c=OpenWeatherClient()
+async def three_day(place: str = Query(min_length=2, max_length=120)):
+    """Return calibrated forecasts for fixed 24h, 48h and 72h lead times."""
+    model = load_india_model()
+    if model is None:
+        raise HTTPException(
+            503,
+            detail="India model artifact is not installed. Add artifacts/india_weather_calibration.joblib.",
+        )
+    client = OpenWeatherClient()
     try:
-        loc=await c.geocode(place)
-        current=await c.current(loc["lat"],loc["lon"])
-        recent=await fetch_recent_daily(loc["lat"],loc["lon"],7)
-        if recent:
-            recent[-1].update({"temperature_c":current["temperature_c"],"humidity_pct":current["humidity_pct"],
-              "rainfall_mm":current["rain_1h_mm"],"wind_speed_ms":current["wind_speed_ms"]})
-        result=predict_from_recent(recent,loc["lat"],loc["lon"])
-        if result is None:raise HTTPException(503,detail="Global model artifact is not installed. Train once and mount artifacts/global_weather_model.joblib.")
-        result["location"]={k:loc[k] for k in ("name","state","country")}
-        result["current_weather"]=current
+        location = await client.geocode(place)
+        current = await client.current(location["lat"], location["lon"])
+        hourly = await fetch_hourly_forecast(location["lat"], location["lon"], days=4)
+        result = predict_india_forecasts(
+            hourly, location["lat"], location["lon"],
+            elevation_m=0.0, model=model,
+        )
+        if result is None:
+            raise HTTPException(503, detail="India model could not be loaded.")
+        result["location"] = {
+            key: location.get(key) for key in ("name", "state", "country")
+        }
+        result["current_weather"] = current
         return result
-    except WeatherProviderError as e:raise HTTPException(502,detail=str(e)) from e
+    except WeatherProviderError as exc:
+        raise HTTPException(502, detail=str(exc)) from exc
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(502, detail=f"Forecast inference failed: {exc}") from exc
+
+
+@app.get("/api/predictions")
+async def india_predictions(place: str = Query(min_length=2, max_length=120)):
+    """Alias for clients that prefer a resource-oriented predictions route."""
+    return await three_day(place)
+
 
 @app.get("/api/models/metrics")
-def metrics():return load_metrics()
+def metrics():
+    return load_india_metrics()
