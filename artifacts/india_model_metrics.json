@@ -1,0 +1,230 @@
+{
+  "dataset": {
+    "rows": 262800,
+    "locations": 30,
+    "utc_days": 365,
+    "start_utc": "2025-11-14 00:00:00+00:00",
+    "end_utc": "2026-11-13 23:00:00+00:00"
+  },
+  "method": "per-lead HistGradientBoosting calibration; chronological 80/20 valid_time holdout; no row shuffle",
+  "feature_policy": "Only fixed-lead Previous Runs forecasts, location metadata and valid-time calendar features. Historical Weather reanalysis columns are targets only.",
+  "rain_threshold_mm": 0.1,
+  "leads": {
+    "1": {
+      "split_date_utc": "2026-09-02T00:00:00+00:00",
+      "rows": {
+        "total": 262800,
+        "train": 210240,
+        "test": 52560
+      },
+      "feature_columns": [
+        "previous_run_temperature_2m_previous_day1",
+        "previous_run_relative_humidity_2m_previous_day1",
+        "previous_run_precipitation_previous_day1",
+        "previous_run_wind_speed_10m_previous_day1",
+        "latitude",
+        "longitude",
+        "elevation_m",
+        "hour_sin",
+        "hour_cos",
+        "doy_sin",
+        "doy_cos"
+      ],
+      "targets": {
+        "temperature_2m": {
+          "raw_forecast": {
+            "mae": 0.733607305936073,
+            "rmse": 1.0450042421243269
+          },
+          "bias_corrected": {
+            "mae": 0.649753229702752,
+            "rmse": 0.9274123992508536
+          }
+        },
+        "relative_humidity_2m": {
+          "raw_forecast": {
+            "mae": 4.54046803652968,
+            "rmse": 6.51129302320932
+          },
+          "bias_corrected": {
+            "mae": 4.245221496542428,
+            "rmse": 5.881476807857002
+          }
+        },
+        "precipitation": {
+          "raw_forecast": {
+            "mae": 0.17521879756468797,
+            "rmse": 0.7273441345790485
+          },
+          "bias_corrected": {
+            "mae": 0.1744628718102827,
+            "rmse": 0.5839601949168809
+          }
+        },
+        "wind_speed_10m": {
+          "raw_forecast": {
+            "mae": 1.857049086757991,
+            "rmse": 2.5682874930349513
+          },
+          "bias_corrected": {
+            "mae": 1.7627135615139333,
+            "rmse": 2.4073667338643623
+          }
+        }
+      },
+      "rain_probability": {
+        "positive_rate": 0.12323059360730594,
+        "raw_binary_forecast_brier": 0.11649543378995433,
+        "calibrated_probability_brier": 0.07848906520515642,
+        "precision_at_0_5": 0.586669921875,
+        "recall_at_0_5": 0.37100509495136635,
+        "f1_at_0_5": 0.4545540527759387,
+        "roc_auc": 0.8708455597555412
+      }
+    },
+    "2": {
+      "split_date_utc": "2026-09-02T00:00:00+00:00",
+      "rows": {
+        "total": 262800,
+        "train": 210240,
+        "test": 52560
+      },
+      "feature_columns": [
+        "previous_run_temperature_2m_previous_day2",
+        "previous_run_relative_humidity_2m_previous_day2",
+        "previous_run_precipitation_previous_day2",
+        "previous_run_wind_speed_10m_previous_day2",
+        "latitude",
+        "longitude",
+        "elevation_m",
+        "hour_sin",
+        "hour_cos",
+        "doy_sin",
+        "doy_cos"
+      ],
+      "targets": {
+        "temperature_2m": {
+          "raw_forecast": {
+            "mae": 0.8555403348554033,
+            "rmse": 1.1793629126594023
+          },
+          "bias_corrected": {
+            "mae": 0.7656344498623172,
+            "rmse": 1.05350218899279
+          }
+        },
+        "relative_humidity_2m": {
+          "raw_forecast": {
+            "mae": 5.316400304414003,
+            "rmse": 7.442049070541053
+          },
+          "bias_corrected": {
+            "mae": 4.972168058499606,
+            "rmse": 6.726741004964277
+          }
+        },
+        "precipitation": {
+          "raw_forecast": {
+            "mae": 0.18017694063926937,
+            "rmse": 0.7288474513270496
+          },
+          "bias_corrected": {
+            "mae": 0.17721899495262797,
+            "rmse": 0.5868034488418933
+          }
+        },
+        "wind_speed_10m": {
+          "raw_forecast": {
+            "mae": 2.0553957382039574,
+            "rmse": 2.8004241089982695
+          },
+          "bias_corrected": {
+            "mae": 1.9315094726379607,
+            "rmse": 2.5816022688763804
+          }
+        }
+      },
+      "rain_probability": {
+        "positive_rate": 0.12323059360730594,
+        "raw_binary_forecast_brier": 0.12534246575342467,
+        "calibrated_probability_brier": 0.08174860866252683,
+        "precision_at_0_5": 0.5683850604944766,
+        "recall_at_0_5": 0.3336421182646287,
+        "f1_at_0_5": 0.4204689172098453,
+        "roc_auc": 0.8553046244960849
+      }
+    },
+    "3": {
+      "split_date_utc": "2026-09-02T00:00:00+00:00",
+      "rows": {
+        "total": 262800,
+        "train": 210240,
+        "test": 52560
+      },
+      "feature_columns": [
+        "previous_run_temperature_2m_previous_day3",
+        "previous_run_relative_humidity_2m_previous_day3",
+        "previous_run_precipitation_previous_day3",
+        "previous_run_wind_speed_10m_previous_day3",
+        "latitude",
+        "longitude",
+        "elevation_m",
+        "hour_sin",
+        "hour_cos",
+        "doy_sin",
+        "doy_cos"
+      ],
+      "targets": {
+        "temperature_2m": {
+          "raw_forecast": {
+            "mae": 0.9384988584474886,
+            "rmse": 1.2864389718562255
+          },
+          "bias_corrected": {
+            "mae": 0.8655438113985237,
+            "rmse": 1.170051566786332
+          }
+        },
+        "relative_humidity_2m": {
+          "raw_forecast": {
+            "mae": 5.903310502283105,
+            "rmse": 8.184144004708259
+          },
+          "bias_corrected": {
+            "mae": 5.426682114012551,
+            "rmse": 7.299951993003774
+          }
+        },
+        "precipitation": {
+          "raw_forecast": {
+            "mae": 0.18954147640791474,
+            "rmse": 0.7447575530233904
+          },
+          "bias_corrected": {
+            "mae": 0.1872479770178206,
+            "rmse": 0.6057070819828845
+          }
+        },
+        "wind_speed_10m": {
+          "raw_forecast": {
+            "mae": 2.2396175799086757,
+            "rmse": 3.016547305845182
+          },
+          "bias_corrected": {
+            "mae": 2.088140710258394,
+            "rmse": 2.7658805980851655
+          }
+        }
+      },
+      "rain_probability": {
+        "positive_rate": 0.12323059360730594,
+        "raw_binary_forecast_brier": 0.1322869101978691,
+        "calibrated_probability_brier": 0.08583084349929991,
+        "precision_at_0_5": 0.5822041553748871,
+        "recall_at_0_5": 0.19901188821985488,
+        "f1_at_0_5": 0.2966286963525486,
+        "roc_auc": 0.8398495493784028
+      }
+    }
+  }
+}
