@@ -69,7 +69,7 @@ def predict_india_forecasts(hourly_payload: dict, latitude: float, longitude: fl
         }
         raw = {}
         for variable in VARIABLES:
-            column = f"{variable}_previous_day{lead}"
+            column = f"previous_run_{variable}_previous_day{lead}"
             values = hourly.get(variable)
             if values is None or index >= len(values) or values[index] is None:
                 raise ValueError(f"Open-Meteo hourly forecast is missing {variable}.")
@@ -78,7 +78,7 @@ def predict_india_forecasts(hourly_payload: dict, latitude: float, longitude: fl
 
         model_features = bundle["leads"][str(lead)]["regressors"]
         ordered = [
-            f"{variable}_previous_day{lead}" for variable in VARIABLES
+            f"previous_run_{variable}_previous_day{lead}" for variable in VARIABLES
         ] + ["latitude", "longitude", "elevation_m", "hour_sin", "hour_cos", "doy_sin", "doy_cos"]
         x = pd.DataFrame([[features[name] for name in ordered]], columns=ordered)
         calibrated = {}
